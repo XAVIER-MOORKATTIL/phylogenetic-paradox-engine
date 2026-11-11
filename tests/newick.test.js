@@ -64,3 +64,210 @@ test("rejects non-object input", () => {
         /valid phylogenetic tree/
     );
 });
+
+// TEST 6: Quote scientific names containing spaces.
+test("quotes taxon names containing spaces", () => {
+
+    const tree = {
+        name: null,
+
+        left: {
+            node: {
+                name: "Homo sapiens"
+            },
+            branchLength: 0.1
+        },
+
+        right: {
+            node: {
+                name: "Pan troglodytes"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    assert.equal(
+        convertTreeToNewick(tree),
+        "('Homo sapiens':0.1,'Pan troglodytes':0.1);"
+    );
+
+});
+
+
+// TEST 7: Escape apostrophes inside taxon names.
+test("escapes apostrophes in taxon names", () => {
+
+    const tree = {
+        name: null,
+
+        left: {
+            node: {
+                name: "Species O'Brien"
+            },
+            branchLength: 0.2
+        },
+
+        right: {
+            node: {
+                name: "Human"
+            },
+            branchLength: 0.2
+        }
+    };
+
+    assert.equal(
+        convertTreeToNewick(tree),
+        "('Species O''Brien':0.2,Human:0.2);"
+    );
+
+});
+
+
+// TEST 8: Quote taxon names containing Newick punctuation.
+test("quotes taxon names containing Newick punctuation", () => {
+
+    const tree = {
+        name: null,
+
+        left: {
+            node: {
+                name: "Species:A"
+            },
+            branchLength: 0.1
+        },
+
+        right: {
+            node: {
+                name: "Human"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    assert.equal(
+        convertTreeToNewick(tree),
+        "('Species:A':0.1,Human:0.1);"
+    );
+
+});
+
+
+// TEST 9: Reject empty taxon names.
+test("rejects empty taxon names", () => {
+
+    const tree = {
+        name: ""
+    };
+
+    assert.throws(
+        () => convertTreeToNewick(tree),
+        /Taxon names must be non-empty strings/
+    );
+
+});
+
+
+// TEST 10: Reject malformed internal nodes.
+test("rejects internal nodes with missing branches", () => {
+
+    const tree = {
+        name: null,
+        left: {
+            node: {
+                name: "Human"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    assert.throws(
+        () => convertTreeToNewick(tree),
+        /valid left and right branches/
+    );
+
+});
+
+
+// TEST 11: Reject negative branch lengths.
+test("rejects negative branch lengths", () => {
+
+    const tree = {
+        name: null,
+
+        left: {
+            node: {
+                name: "Human"
+            },
+            branchLength: -0.1
+        },
+
+        right: {
+            node: {
+                name: "Chimpanzee"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    assert.throws(
+        () => convertTreeToNewick(tree),
+        /finite non-negative numbers/
+    );
+
+});
+
+
+// TEST 12: Reject infinite branch lengths.
+test("rejects infinite branch lengths", () => {
+
+    const tree = {
+        name: null,
+
+        left: {
+            node: {
+                name: "Human"
+            },
+            branchLength: Infinity
+        },
+
+        right: {
+            node: {
+                name: "Chimpanzee"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    assert.throws(
+        () => convertTreeToNewick(tree),
+        /finite non-negative numbers/
+    );
+
+});
+
+
+// TEST 13: Reject circular tree structures.
+test("rejects circular tree structures", () => {
+
+    const tree = {
+        name: null,
+        left: null,
+        right: {
+            node: {
+                name: "Human"
+            },
+            branchLength: 0.1
+        }
+    };
+
+    tree.left = {
+        node: tree,
+        branchLength: 0.1
+    };
+
+    assert.throws(
+        () => convertTreeToNewick(tree),
+        /cycles or reused nodes/
+    );
+
+});
