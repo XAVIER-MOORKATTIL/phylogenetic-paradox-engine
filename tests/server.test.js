@@ -165,3 +165,126 @@ test("POST /api/analyze rejects invalid DNA sequences", async () => {
         "Both inputs must be valid DNA sequences."
     );
 });
+
+
+// TEST 5: Reject malformed JSON.
+test("POST /api/analyze rejects malformed JSON", async () => {
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: '{"sequences":'
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Request body contains invalid JSON."
+    );
+});
+
+
+// TEST 6: Reject a request without the sequences property.
+test("POST /api/analyze rejects a missing sequences property", async () => {
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            organisms: {
+                Human: "ATGC",
+                Chimpanzee: "ATAC"
+            }
+        })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Request body must contain a sequences property."
+    );
+});
+
+
+// TEST 7: Reject an array instead of a JSON object.
+test("POST /api/analyze rejects an array request body", async () => {
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify([
+            "ATGC",
+            "ATAC"
+        ])
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Request body must be a JSON object."
+    );
+});
+
+
+// TEST 8: Reject a request body larger than 100 KB.
+test("POST /api/analyze rejects oversized request bodies", async () => {
+
+    const oversizedSequence = "A".repeat(101 * 1024);
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            sequences: {
+                Human: oversizedSequence,
+                Chimpanzee: "ATAC"
+            }
+        })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 413);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Request body exceeds the 100kb limit."
+    );
+});
