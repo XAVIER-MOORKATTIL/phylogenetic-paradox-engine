@@ -494,3 +494,196 @@ test("POST /api/analyze/aligned rejects sequences longer than 10000 characters",
         "Each DNA sequence must contain at most 10000 characters."
     );
 });
+
+// TEST 15: Accept exactly 50 organisms in ordinary analysis.
+test("POST /api/analyze accepts exactly 50 organisms", async () => {
+
+    const sequences = Object.fromEntries(
+
+        Array.from(
+            { length: 50 },
+            (_, index) => [`Species_${index + 1}`, "ATGC"]
+        )
+
+    );
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({ sequences })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.equal(Object.keys(body.analysis.distanceMatrix).length, 50);
+});
+
+
+// TEST 16: Accept exactly 50 organisms in aligned analysis.
+test("POST /api/analyze/aligned accepts exactly 50 organisms", async () => {
+
+    const sequences = Object.fromEntries(
+
+        Array.from(
+            { length: 50 },
+            (_, index) => [`Species_${index + 1}`, "AT-GC"]
+        )
+
+    );
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/aligned`,
+        {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({ sequences })
+
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.equal(Object.keys(body.analysis.distanceMatrix).length, 50);
+});
+
+
+// TEST 17: Accept exactly 10000 DNA characters in ordinary analysis.
+test("POST /api/analyze accepts DNA sequences of exactly 10000 characters", async () => {
+
+    const sequence = "A".repeat(10000);
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            sequences: {
+                Human: sequence,
+                Chimpanzee: sequence
+            }
+        })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.equal(body.analysis.distanceMatrix.Human.Chimpanzee, 0);
+});
+
+
+// TEST 18: Accept exactly 10000 aligned DNA characters.
+test("POST /api/analyze/aligned accepts aligned sequences of exactly 10000 characters", async () => {
+
+    const sequence = "A".repeat(10000);
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/aligned`,
+        {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                sequences: {
+                    Human: sequence,
+                    Chimpanzee: sequence
+                }
+            })
+
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.equal(body.analysis.distanceMatrix.Human.Chimpanzee, 0);
+});
+
+
+// TEST 19: Accept a species name of exactly 50 characters.
+test("POST /api/analyze accepts a species name of exactly 50 characters", async () => {
+
+    const speciesName = "A" + "b".repeat(49);
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            sequences: {
+                [speciesName]: "ATGC",
+                Chimpanzee: "ATAC"
+            }
+        })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.ok(body.analysis.distanceMatrix[speciesName]);
+});
+
+
+// TEST 20: Reject a species name of 51 characters.
+test("POST /api/analyze rejects a species name of 51 characters", async () => {
+
+    const speciesName = "A" + "b".repeat(50);
+
+    const response = await fetch(`${baseUrl}/api/analyze`, {
+
+        method: "POST",
+
+        headers: {
+            "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+            sequences: {
+                [speciesName]: "ATGC",
+                Chimpanzee: "ATAC"
+            }
+        })
+
+    });
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /Species names must start with a letter/
+    );
+});
