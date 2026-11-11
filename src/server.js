@@ -1,5 +1,8 @@
 
 const express = require("express");
+const {
+    parseFasta
+} = require("./fasta");
 
 const {
     runPhylogeneticAnalysis,
@@ -41,7 +44,30 @@ function getSequencesFromRequest(req) {
 
     return req.body.sequences;
 }
+// Validate and retrieve FASTA text from an API request.
+function getFastaFromRequest(req) {
 
+    if (
+        !req.body ||
+        typeof req.body !== "object" ||
+        Array.isArray(req.body)
+    ) {
+        throw new Error("Request body must be a JSON object.");
+    }
+
+    if (
+        !Object.prototype.hasOwnProperty.call(
+            req.body,
+            "fasta"
+        )
+    ) {
+        throw new Error(
+            "Request body must contain a fasta property."
+        );
+    }
+
+    return req.body.fasta;
+}
 
 // STEP 4: Health-check endpoint.
 app.get("/api/health", (req, res) => {
@@ -105,8 +131,39 @@ app.post("/api/analyze/aligned", (req, res) => {
 
 });
 
+// STEP 8: Handle malformed JSON and other middleware errors.
+app.post("/api/analyze/fasta", (req, res) => {
 
-// STEP 7: Handle malformed JSON and other middleware errors.
+    try {
+
+        // Retrieve FASTA text from the request.
+        const fastaText = getFastaFromRequest(req);
+
+        // Convert FASTA text into a sequence object.
+        const sequences = parseFasta(fastaText);
+
+        // Run the existing ordinary DNA analysis pipeline.
+        const result = runPhylogeneticAnalysis(sequences);
+
+        // Return the analysis as JSON.
+        res.status(200).json({
+            success: true,
+            analysis: result
+        });
+
+    } catch (error) {
+
+        // Return validation or analysis errors.
+        res.status(400).json({
+            success: false,
+            error: error.message
+        });
+
+    }
+
+});
+
+// STEP 8: Handle malformed JSON and other middleware errors.
 app.use((error, req, res, next) => {
 
     if (error.type === "entity.parse.failed") {

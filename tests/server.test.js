@@ -844,3 +844,187 @@ test("POST /api/analyze rejects a species name of 51 characters", async () => {
     );
 
 });
+
+
+// ============================================================
+// FASTA API TESTS
+// ============================================================
+
+
+// TEST 23: Analyze valid FASTA input.
+test("POST /api/analyze/fasta returns a phylogenetic analysis", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+>Gorilla gorilla
+ATGA
+`;
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+
+    assert.equal(
+        body.analysis.distanceMatrix["Homo sapiens"]["Pan troglodytes"],
+        0.25
+    );
+
+    assert.ok(
+        body.analysis.newick.includes("Homo sapiens")
+    );
+
+    assert.ok(
+        body.analysis.newick.includes("Pan troglodytes")
+    );
+
+});
+
+
+// TEST 24: Reject a request without a FASTA property.
+test("POST /api/analyze/fasta rejects a missing fasta property", async () => {
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                sequences: {
+                    Human: "ATGC"
+                }
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /fasta property/
+    );
+
+});
+
+
+// TEST 25: Reject non-string FASTA input.
+test("POST /api/analyze/fasta rejects non-string input", async () => {
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta: 123
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /FASTA input must be a string/
+    );
+
+});
+
+
+// TEST 26: Reject invalid DNA characters in FASTA input.
+test("POST /api/analyze/fasta rejects invalid DNA sequences", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGN
+>Pan troglodytes
+ATAC
+`;
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /empty or invalid DNA sequence/
+    );
+
+});
+
+
+// TEST 27: Reject malformed JSON sent to the FASTA endpoint.
+test("POST /api/analyze/fasta rejects malformed JSON", async () => {
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: "{ invalid json"
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Request body contains invalid JSON."
+    );
+
+});
