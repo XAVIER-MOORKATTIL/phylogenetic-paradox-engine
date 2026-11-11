@@ -54,11 +54,12 @@ function validateSequenceCollectionLimits(sequences) {
 
     for (const name of speciesNames) {
 
-        if (!/^[A-Za-z][A-Za-z0-9_]{0,49}$/.test(name)) {
-            throw new Error(
-                "Species names must start with a letter and contain only letters, numbers, and underscores (maximum 50 characters)."
-            );
-        }
+if (!/^[A-Za-z](?:[A-Za-z0-9]|[ _-](?=[A-Za-z0-9])){0,49}$/.test(name)) {
+    throw new Error(
+        "Species names must start with a letter and contain only letters, numbers, and single spaces, underscores, or hyphens between name segments (maximum 50 characters)."
+    );
+}
+
 
         const sequence = sequences[name];
 
