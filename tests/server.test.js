@@ -1028,3 +1028,156 @@ test("POST /api/analyze/fasta rejects malformed JSON", async () => {
     );
 
 });
+
+
+// ============================================================
+// PROVENANCE API TESTS
+// ============================================================
+
+
+// TEST 28: Return provenance with successful FASTA analysis.
+test("POST /api/analyze/fasta returns analysis provenance", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+
+    assert.equal(body.provenance.input.format, "fasta");
+
+    assert.equal(
+        body.provenance.input.sequenceCount,
+        2
+    );
+
+    assert.match(
+        body.provenance.input.sha256,
+        /^[a-f0-9]{64}$/
+    );
+
+    assert.match(
+        body.provenance.input.sequenceDataSha256,
+        /^[a-f0-9]{64}$/
+    );
+
+    assert.equal(
+        body.provenance.source.status,
+        "not-provided"
+    );
+
+    assert.equal(
+        body.provenance.analysis.treeMethod,
+        "UPGMA"
+    );
+
+});
+
+
+// TEST 29: Preserve optional source metadata.
+test("POST /api/analyze/fasta records user-provided source metadata", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    const sourceMetadata = {
+        type: "synthetic",
+        description: "Artificial sequences created for software testing."
+    };
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta,
+                sourceMetadata
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+
+    assert.equal(
+        body.provenance.source.status,
+        "user-provided"
+    );
+
+    assert.deepEqual(
+        body.provenance.source.details,
+        sourceMetadata
+    );
+
+});
+
+
+// TEST 30: Reject invalid source metadata.
+test("POST /api/analyze/fasta rejects invalid source metadata", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    const response = await fetch(
+        `${baseUrl}/api/analyze/fasta`,
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                fasta,
+                sourceMetadata: "unknown source"
+            })
+        }
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /Source metadata must be an object/
+    );
+
+});

@@ -1,8 +1,13 @@
 
 const express = require("express");
+
 const {
     parseFasta
 } = require("./fasta");
+
+const {
+    createAnalysisProvenance
+} = require("./provenance");
 
 const {
     runPhylogeneticAnalysis,
@@ -20,7 +25,7 @@ app.use(express.json({
 }));
 
 
-// STEP 3: Validate the incoming request structure.
+// STEP 3: Validate and retrieve ordinary sequences.
 function getSequencesFromRequest(req) {
 
     if (
@@ -28,7 +33,9 @@ function getSequencesFromRequest(req) {
         typeof req.body !== "object" ||
         Array.isArray(req.body)
     ) {
-        throw new Error("Request body must be a JSON object.");
+        throw new Error(
+            "Request body must be a JSON object."
+        );
     }
 
     if (
@@ -44,7 +51,9 @@ function getSequencesFromRequest(req) {
 
     return req.body.sequences;
 }
-// Validate and retrieve FASTA text from an API request.
+
+
+// STEP 4: Validate and retrieve FASTA input.
 function getFastaFromRequest(req) {
 
     if (
@@ -52,7 +61,9 @@ function getFastaFromRequest(req) {
         typeof req.body !== "object" ||
         Array.isArray(req.body)
     ) {
-        throw new Error("Request body must be a JSON object.");
+        throw new Error(
+            "Request body must be a JSON object."
+        );
     }
 
     if (
@@ -69,7 +80,8 @@ function getFastaFromRequest(req) {
     return req.body.fasta;
 }
 
-// STEP 4: Health-check endpoint.
+
+// STEP 5: Health-check endpoint.
 app.get("/api/health", (req, res) => {
 
     res.status(200).json({
@@ -80,7 +92,7 @@ app.get("/api/health", (req, res) => {
 });
 
 
-// STEP 5: Ordinary DNA analysis endpoint.
+// STEP 6: Ordinary DNA analysis endpoint.
 app.post("/api/analyze", (req, res) => {
 
     try {
@@ -106,7 +118,7 @@ app.post("/api/analyze", (req, res) => {
 });
 
 
-// STEP 6: Aligned DNA analysis endpoint.
+// STEP 7: Aligned DNA analysis endpoint.
 app.post("/api/analyze/aligned", (req, res) => {
 
     try {
@@ -131,7 +143,8 @@ app.post("/api/analyze/aligned", (req, res) => {
 
 });
 
-// STEP 8: Handle malformed JSON and other middleware errors.
+
+// STEP 8: FASTA analysis endpoint with provenance.
 app.post("/api/analyze/fasta", (req, res) => {
 
     try {
@@ -139,16 +152,36 @@ app.post("/api/analyze/fasta", (req, res) => {
         // Retrieve FASTA text from the request.
         const fastaText = getFastaFromRequest(req);
 
+
         // Convert FASTA text into a sequence object.
         const sequences = parseFasta(fastaText);
+
 
         // Run the existing ordinary DNA analysis pipeline.
         const result = runPhylogeneticAnalysis(sequences);
 
-        // Return the analysis as JSON.
+
+        // Generate a provenance record.
+        const provenance = createAnalysisProvenance({
+
+            inputFormat: "fasta",
+
+            originalInput: fastaText,
+
+            sequences,
+
+            analysisType: "ordinary",
+
+            sourceMetadata: req.body.sourceMetadata
+
+        });
+
+
+        // Return analysis and provenance as JSON.
         res.status(200).json({
             success: true,
-            analysis: result
+            analysis: result,
+            provenance
         });
 
     } catch (error) {
@@ -163,7 +196,8 @@ app.post("/api/analyze/fasta", (req, res) => {
 
 });
 
-// STEP 8: Handle malformed JSON and other middleware errors.
+
+// STEP 9: Handle malformed JSON and other middleware errors.
 app.use((error, req, res, next) => {
 
     if (error.type === "entity.parse.failed") {
@@ -194,7 +228,7 @@ app.use((error, req, res, next) => {
 });
 
 
-// STEP 8: Start the development server.
+// STEP 10: Start the development server.
 const PORT = 3000;
 
 if (require.main === module) {
@@ -210,5 +244,5 @@ if (require.main === module) {
 }
 
 
-// STEP 9: Export the application for automated testing.
+// STEP 11: Export the application for automated testing.
 module.exports = app;
