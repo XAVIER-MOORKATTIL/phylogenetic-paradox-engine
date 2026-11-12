@@ -7,6 +7,10 @@ const {
 
 const assert = require("node:assert/strict");
 
+const fs = require("node:fs/promises");
+const os = require("node:os");
+const path = require("node:path");
+
 const app = require("../src/server");
 
 // ============================================================
@@ -16,20 +20,42 @@ const app = require("../src/server");
 // Store the temporary test server.
 let server;
 let baseUrl;
+let analysisStorageDirectory;
+let originalAnalysisStorageDirectory;
 
 // Start the server before executing API tests.
 before(async () => {
 
+
+    // Preserve any previously configured storage directory.
+    originalAnalysisStorageDirectory =
+        process.env.ANALYSIS_STORAGE_DIRECTORY;
+
+
+    // Create an isolated temporary storage directory.
+    analysisStorageDirectory = await fs.mkdtemp(
+        path.join(os.tmpdir(), "phylogenetic-api-tests-")
+    );
+
+
+    // Tell the Express API to use temporary storage.
+    process.env.ANALYSIS_STORAGE_DIRECTORY =
+        analysisStorageDirectory;
+
+
     // Port 0 allows Windows to assign an available port.
     server = app.listen(0);
+
 
     // Wait until the server starts listening.
     await new Promise(resolve => {
         server.once("listening", resolve);
     });
 
+
     // Retrieve the port assigned by Windows.
     const address = server.address();
+
 
     // Construct the base URL for API requests.
     baseUrl = `http://127.0.0.1:${address.port}`;
@@ -39,23 +65,48 @@ before(async () => {
 // Close the temporary server after all tests finish.
 after(async () => {
 
-    if (!server) {
-        return;
-    }
+    // Stop the temporary HTTP server.
+    if (server) {
 
-    await new Promise((resolve, reject) => {
+        await new Promise((resolve, reject) => {
 
-        server.close(error => {
+            server.close(error => {
 
-            if (error) {
-                reject(error);
-            } else {
-                resolve();
-            }
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve();
+                }
+
+            });
 
         });
 
-    });
+    }
+
+
+    // Delete the temporary analysis storage directory.
+    if (analysisStorageDirectory) {
+
+        await fs.rm(analysisStorageDirectory, {
+            recursive: true,
+            force: true
+        });
+
+    }
+
+
+    // Restore the original environment variable.
+    if (originalAnalysisStorageDirectory === undefined) {
+
+        delete process.env.ANALYSIS_STORAGE_DIRECTORY;
+
+    } else {
+
+        process.env.ANALYSIS_STORAGE_DIRECTORY =
+            originalAnalysisStorageDirectory;
+
+    }
 
 });
 
@@ -1179,5 +1230,203 @@ ATAC
         body.error,
         /Source metadata must be an object/
     );
+
+});
+
+// ============================================================
+// PERSISTENT ANALYSIS STORAGE API TESTS
+// ============================================================
+
+
+// TEST 31: Save successful FASTA analysis as a persistent JSON record.
+test("POST /api/analyze/fasta saves a persistent analysis record", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    const sourceMetadata = {
+        type: "synthetic",
+        description: "Artificial sequences created for software testing."
+    };
+
+    let recordPath;
+
+    try {
+
+        const response = await fetch(
+            `${baseUrl}/api/analyze/fasta`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    fasta,
+                    sourceMetadata
+                })
+            }
+        );
+
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(body.success, true);
+        // The API must not expose the computer's local filesystem path.
+assert.equal(
+    Object.prototype.hasOwnProperty.call(
+        body.record,
+        "filePath"
+    ),
+    false
+);
+
+        // Verify the returned persistent record identifier.
+        assert.match(
+            body.record.id,
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        );
+
+        // Verify the save timestamp.
+        assert.equal(
+            Number.isNaN(Date.parse(body.record.savedAt)),
+            false
+        );
+
+
+        // Locate the expected JSON record.
+        recordPath = path.join(
+    analysisStorageDirectory,
+    `${body.record.id}.json`
+);
+
+
+        // Read the persistent record from disk.
+        const fileContents = await fs.readFile(
+            recordPath,
+            "utf8"
+        );
+
+        const savedRecord = JSON.parse(fileContents);
+
+
+        // Verify the record identifier.
+        assert.equal(
+            savedRecord.id,
+            body.record.id
+        );
+
+
+        // Verify the provenance was saved.
+        assert.deepEqual(
+            savedRecord.provenance,
+            body.provenance
+        );
+
+
+        // Verify the analysis results were saved.
+        assert.deepEqual(
+            savedRecord.analysis,
+            body.analysis
+        );
+
+
+        // Verify the source metadata survived persistence.
+        assert.deepEqual(
+            savedRecord.provenance.source.details,
+            sourceMetadata
+        );
+
+    } finally {
+
+        // Remove the temporary record created by this test.
+        if (recordPath) {
+            await fs.rm(recordPath, {
+                force: true
+            });
+        }
+
+    }
+
+});
+
+// TEST 32: Return HTTP 500 when persistent storage fails.
+test("POST /api/analyze/fasta returns HTTP 500 when storage fails", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    // Preserve the original storage configuration.
+    const originalStorageDirectory =
+        process.env.ANALYSIS_STORAGE_DIRECTORY;
+
+    // Create a file where the storage directory is expected.
+    const invalidStoragePath = path.join(
+        analysisStorageDirectory,
+        "storage-is-a-file"
+    );
+
+    try {
+
+        await fs.writeFile(
+            invalidStoragePath,
+            "This is a file, not a directory."
+        );
+
+        // Force the storage operation to fail.
+        process.env.ANALYSIS_STORAGE_DIRECTORY =
+            invalidStoragePath;
+
+        const response = await fetch(
+            `${baseUrl}/api/analyze/fasta`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    fasta
+                })
+            }
+        );
+
+        const body = await response.json();
+
+        // Storage failure must be treated as a server error.
+        assert.equal(response.status, 500);
+        assert.equal(body.success, false);
+
+        assert.equal(
+            body.error,
+            "Internal server error."
+        );
+
+    } finally {
+
+        // Restore the original storage configuration.
+        if (originalStorageDirectory === undefined) {
+            delete process.env.ANALYSIS_STORAGE_DIRECTORY;
+        } else {
+            process.env.ANALYSIS_STORAGE_DIRECTORY =
+                originalStorageDirectory;
+        }
+
+        // Remove the temporary file.
+        await fs.rm(invalidStoragePath, {
+            force: true
+        });
+
+    }
 
 });

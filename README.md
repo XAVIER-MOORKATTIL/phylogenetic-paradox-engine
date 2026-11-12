@@ -399,7 +399,7 @@ The project uses Node.js native test runner through the following npm script:
 
 At the time of this README revision, the project has:
 
-- 125 automated tests passing.
+- 155 automated tests passing.
 - 0 failed tests.
 
 The suite covers sequence validation, distance calculations, matrices, UPGMA, Newick serialization, FASTA parsing, and API endpoints.

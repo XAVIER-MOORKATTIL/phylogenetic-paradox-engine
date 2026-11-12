@@ -10,6 +10,10 @@ const {
 } = require("./provenance");
 
 const {
+    saveAnalysisRecord
+} = require("./analysisStore");
+
+const {
     runPhylogeneticAnalysis,
     runAlignedPhylogeneticAnalysis
 } = require("./index");
@@ -144,55 +148,79 @@ app.post("/api/analyze/aligned", (req, res) => {
 });
 
 
-// STEP 8: FASTA analysis endpoint with provenance.
-app.post("/api/analyze/fasta", (req, res) => {
+// STEP 8: FASTA analysis endpoint with provenance and persistence.
+app.post("/api/analyze/fasta", async (req, res, next) => {
 
+    let fastaText;
+    let sequences;
+    let result;
+    let provenance;
+
+    // Part 1: Validate input and perform the analysis.
     try {
 
         // Retrieve FASTA text from the request.
-        const fastaText = getFastaFromRequest(req);
-
+        fastaText = getFastaFromRequest(req);
 
         // Convert FASTA text into a sequence object.
-        const sequences = parseFasta(fastaText);
-
+        sequences = parseFasta(fastaText);
 
         // Run the existing ordinary DNA analysis pipeline.
-        const result = runPhylogeneticAnalysis(sequences);
-
+        result = runPhylogeneticAnalysis(sequences);
 
         // Generate a provenance record.
-        const provenance = createAnalysisProvenance({
+        provenance = createAnalysisProvenance({
 
             inputFormat: "fasta",
-
             originalInput: fastaText,
-
             sequences,
-
             analysisType: "ordinary",
-
             sourceMetadata: req.body.sourceMetadata
 
         });
 
-
-        // Return analysis and provenance as JSON.
-        res.status(200).json({
-            success: true,
-            analysis: result,
-            provenance
-        });
-
     } catch (error) {
 
-        // Return validation or analysis errors.
-        res.status(400).json({
+        // Invalid input or analysis errors are client errors.
+        return res.status(400).json({
             success: false,
             error: error.message
         });
 
     }
+
+    // Part 2: Save the analysis and provenance.
+    let savedRecord;
+
+    try {
+
+        savedRecord = await saveAnalysisRecord(
+            {
+                provenance,
+                analysis: result
+            },
+            process.env.ANALYSIS_STORAGE_DIRECTORY
+        );
+
+    } catch (error) {
+
+        // Pass storage failures to the global error middleware.
+        return next(error);
+
+    }
+
+    // Part 3: Return the successful analysis response.
+    return res.status(200).json({
+
+        success: true,
+        analysis: result,
+        provenance,
+        record: {
+            id: savedRecord.id,
+            savedAt: savedRecord.savedAt
+        }
+
+    });
 
 });
 
