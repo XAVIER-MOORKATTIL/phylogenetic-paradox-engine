@@ -161,7 +161,117 @@ async function saveAnalysisRecord(
 }
 
 
-// STEP 14: Export the storage function.
+
+// STEP 14: Retrieve a saved analysis record by its identifier.
+async function getAnalysisRecord(
+    id,
+    directory = DEFAULT_STORAGE_DIRECTORY
+) {
+
+    // Validate the record identifier before constructing a file path.
+    if (
+        typeof id !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ) {
+        throw new Error(
+            "Analysis record ID must be a valid UUID."
+        );
+    }
+
+
+    // Validate the storage directory.
+    if (
+        typeof directory !== "string" ||
+        directory.trim().length === 0
+    ) {
+        throw new Error(
+            "Storage directory must be a valid path."
+        );
+    }
+
+    // Verify that the storage path exists and is a directory.
+    let directoryStats;
+
+    try {
+
+        directoryStats = await fs.stat(directory);
+
+    } catch (error) {
+
+        // A missing storage directory means no records exist.
+        if (error.code === "ENOENT") {
+            return null;
+        }
+
+        // Other filesystem errors must reach the caller.
+        throw error;
+
+    }
+
+    // Reject a regular file being used as a storage directory.
+    if (!directoryStats.isDirectory()) {
+
+        throw new Error(
+            "Analysis storage path is not a directory."
+        );
+
+    }
+
+
+    // Construct the expected JSON file path.
+    const filePath = path.join(
+        directory,
+        `${id}.json`
+    );
+
+
+    // STEP 15: Read the stored JSON record.
+    let fileContents;
+
+    try {
+
+        fileContents = await fs.readFile(
+            filePath,
+            "utf8"
+        );
+
+    } catch (error) {
+
+        // A missing record is a normal lookup result.
+        if (error.code === "ENOENT") {
+            return null;
+        }
+
+        // Other filesystem failures must reach the caller.
+        throw error;
+
+    }
+
+
+    // STEP 16: Parse the JSON record.
+    let savedRecord;
+
+    try {
+
+        savedRecord = JSON.parse(fileContents);
+
+    } catch (error) {
+
+        throw new Error(
+            `Stored analysis record contains invalid JSON: ${error.message}`
+        );
+
+    }
+
+
+    // STEP 17: Return the retrieved record.
+    return savedRecord;
+
+}
+
+
+// STEP 18: Export the storage functions.
 module.exports = {
-    saveAnalysisRecord
+    saveAnalysisRecord,
+    getAnalysisRecord
 };

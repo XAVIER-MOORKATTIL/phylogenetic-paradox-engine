@@ -7,7 +7,8 @@ const os = require("node:os");
 const path = require("node:path");
 
 const {
-    saveAnalysisRecord
+    saveAnalysisRecord,
+    getAnalysisRecord
 } = require("../src/analysisStore");
 
 
@@ -291,6 +292,108 @@ test("rejects records containing circular references", async () => {
     await assert.rejects(
         () => saveAnalysisRecord(record),
         /JSON-serializable/
+    );
+
+});
+
+// TEST 10: Retrieve a previously saved analysis record.
+test("retrieves a saved analysis record by its identifier", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const originalRecord = createSampleRecord();
+
+    const savedRecord = await saveAnalysisRecord(
+        originalRecord,
+        directory
+    );
+
+    const retrievedRecord = await getAnalysisRecord(
+        savedRecord.id,
+        directory
+    );
+
+    assert.deepEqual(
+        retrievedRecord,
+        {
+            id: savedRecord.id,
+            savedAt: savedRecord.savedAt,
+            provenance: originalRecord.provenance,
+            analysis: originalRecord.analysis
+        }
+    );
+
+});
+
+
+// TEST 11: Return null when a record does not exist.
+test("returns null when an analysis record does not exist", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const result = await getAnalysisRecord(
+        "123e4567-e89b-42d3-a456-426614174000",
+        directory
+    );
+
+    assert.equal(result, null);
+
+});
+
+
+// TEST 12: Reject invalid record identifiers.
+test("rejects invalid analysis record identifiers", async () => {
+
+    await assert.rejects(
+        () => getAnalysisRecord("../outside"),
+        /valid UUID/
+    );
+
+});
+
+
+// TEST 13: Reject corrupted JSON records.
+test("rejects analysis records containing invalid JSON", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    const filePath = path.join(
+        directory,
+        `${id}.json`
+    );
+
+    await fs.writeFile(
+        filePath,
+        "{ invalid JSON",
+        "utf8"
+    );
+
+    await assert.rejects(
+        () => getAnalysisRecord(id, directory),
+        /JSON/
     );
 
 });

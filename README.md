@@ -1,9 +1,8 @@
-
 # Phylogenetic Paradox Engine
 
 A JavaScript-based educational prototype for DNA sequence validation, pairwise genetic distance calculation, phylogenetic tree construction, and Newick serialization.
 
-The project provides ordinary DNA analysis, aligned DNA analysis, FASTA parsing, and an Express REST API.
+The project provides ordinary DNA analysis, aligned DNA analysis, FASTA parsing, persistent analysis storage, and an Express REST API.
 
 **Project status:** Working prototype.
 
@@ -61,9 +60,23 @@ The project also includes independent Newick-format interoperability verificatio
 - Ordinary DNA analysis endpoint.
 - Aligned DNA analysis endpoint.
 - FASTA analysis endpoint.
+- Persistent JSON analysis storage.
+- Saved analysis retrieval by UUID.
 - JSON request validation.
 - Malformed JSON handling.
 - Request-body size limits.
+
+### Provenance and persistence
+
+- Analysis provenance records.
+- SHA-256 fingerprint of original input.
+- Canonical sequence-data SHA-256 fingerprint.
+- Recording of input format and analysis methods.
+- Recording of optional user-provided source metadata.
+- Persistent JSON analysis records.
+- UUID-based record identification.
+- ISO 8601 save timestamps.
+- Retrieval of saved analysis records.
 
 ### Verification
 
@@ -78,6 +91,7 @@ The project also includes independent Newick-format interoperability verificatio
 phylogenetic-paradox-engine/
 |
 |-- data/
+|   |-- analyses/                 (created automatically)
 |   |-- example-synthetic.fasta
 |   |-- example-synthetic.nwk
 |
@@ -90,6 +104,8 @@ phylogenetic-paradox-engine/
 |   |-- distance.js
 |   |-- distanceMatrix.js
 |   |-- fasta.js
+|   |-- provenance.js
+|   |-- analysisStore.js
 |   |-- upgma.js
 |   |-- newick.js
 |   |-- index.js
@@ -105,6 +121,8 @@ phylogenetic-paradox-engine/
 |   |-- alignedDistanceMatrix.test.js
 |   |-- alignedPipeline.test.js
 |   |-- fasta.test.js
+|   |-- provenance.test.js
+|   |-- analysisStore.test.js
 |   |-- upgma.test.js
 |   |-- newick.test.js
 |   |-- index.test.js
@@ -115,6 +133,8 @@ phylogenetic-paradox-engine/
 |-- package-lock.json
 |-- README.md
 ```
+
+The `data/analyses/` directory is created automatically when the application saves its first persistent analysis record. Generated analysis records are excluded from Git.
 
 ## 5. Installation
 
@@ -176,6 +196,7 @@ The server must remain running while API requests are submitted.
 | POST | `/api/analyze` | Analyse ordinary DNA sequences |
 | POST | `/api/analyze/aligned` | Analyse aligned DNA sequences |
 | POST | `/api/analyze/fasta` | Analyse DNA sequences supplied in FASTA format |
+| GET | `/api/analyses/:id` | Retrieve a saved analysis record by UUID |
 
 All POST endpoints accept JSON requests.
 
@@ -243,9 +264,55 @@ Example JSON body:
 
 The FASTA parser converts the text into a JavaScript sequence object and passes it to the existing ordinary DNA analysis pipeline.
 
+A successful FASTA analysis also generates provenance information and saves a persistent JSON analysis record.
+
+The response includes:
+
+- `success`: Indicates successful analysis.
+- `analysis`: Contains the analysis results.
+- `provenance`: Contains the analysis provenance.
+- `record.id`: Persistent analysis identifier.
+- `record.savedAt`: Save timestamp.
+
+### E. Retrieve a saved analysis
+
+```text
+GET /api/analyses/:id
+```
+
+A successful FASTA analysis returns a persistent record identifier in `record.id`. This identifier can be used to retrieve the saved analysis.
+
+Example PowerShell request:
+
+```powershell
+# Use the ID returned by the FASTA analysis request.
+$recordId = $result.record.id
+
+# Retrieve the saved analysis.
+$savedAnalysis = Invoke-RestMethod `
+    -Uri "http://localhost:3000/api/analyses/$recordId" `
+    -Method Get
+
+# Display the retrieved record.
+$savedAnalysis | ConvertTo-Json -Depth 10
+```
+
+The response contains:
+
+- `record.id`: Persistent analysis identifier.
+- `record.savedAt`: Save timestamp.
+- `record.provenance`: Analysis provenance.
+- `record.analysis`: Distance matrix and phylogenetic tree.
+
+Possible error responses:
+
+- HTTP 400: Invalid UUID.
+- HTTP 404: Analysis record not found.
+- HTTP 500: Internal storage failure.
+
 ### Successful response structure
 
-All three analysis endpoints return the following general structure:
+The analysis endpoints return a general structure containing:
 
 ```json
 {
@@ -260,9 +327,13 @@ All three analysis endpoints return the following general structure:
 
 The analysis contains:
 
-- `distanceMatrix`: calculated pairwise distances.
-- `tree`: constructed UPGMA tree.
-- `newick`: serialized phylogenetic tree.
+- `distanceMatrix`: Calculated pairwise distances.
+- `tree`: Constructed UPGMA tree.
+- `newick`: Serialized phylogenetic tree.
+
+The FASTA endpoint additionally returns provenance and persistent record information.
+
+The retrieval endpoint returns the saved record inside a `record` property.
 
 ## 8. FASTA Demonstration
 
@@ -317,7 +388,7 @@ $result = Invoke-RestMethod `
 $result | ConvertTo-Json -Depth 10
 ```
 
-The successful response contains the distance matrix, UPGMA tree, and Newick representation.
+The successful response contains the distance matrix, UPGMA tree, Newick representation, provenance and persistent record identifier.
 
 ### Expected pairwise distances
 
@@ -399,10 +470,10 @@ The project uses Node.js native test runner through the following npm script:
 
 At the time of this README revision, the project has:
 
-- 155 automated tests passing.
+- 163 automated tests passing.
 - 0 failed tests.
 
-The suite covers sequence validation, distance calculations, matrices, UPGMA, Newick serialization, FASTA parsing, and API endpoints.
+The suite covers sequence validation, distance calculations, matrices, UPGMA, Newick serialization, FASTA parsing, provenance, persistent storage, and API endpoints.
 
 ## 12. Input Validation Limits
 
@@ -461,9 +532,9 @@ Potential future improvements include:
 - Maximum-likelihood and Bayesian inference.
 - Statistical support and uncertainty estimation.
 - Phylogenetic hypothesis comparison.
+- Analysis record listing and deletion endpoints.
 - React frontend.
 - MongoDB Atlas integration.
-- Reproducible analysis records and result provenance.
 
 ## 15. Project Objective
 

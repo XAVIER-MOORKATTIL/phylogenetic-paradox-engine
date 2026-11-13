@@ -1430,3 +1430,207 @@ ATAC
     }
 
 });
+
+// ============================================================
+// PERSISTENT ANALYSIS RETRIEVAL API TESTS
+// ============================================================
+
+
+// TEST 33: Retrieve a previously saved analysis record.
+test("GET /api/analyses/:id retrieves a saved analysis record", async () => {
+
+    const fasta = `
+>Homo sapiens
+ATGC
+>Pan troglodytes
+ATAC
+`;
+
+    let recordId;
+
+    try {
+
+        // First, create a saved analysis record.
+        const saveResponse = await fetch(
+            `${baseUrl}/api/analyze/fasta`,
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    fasta
+                })
+            }
+        );
+
+        const savedBody = await saveResponse.json();
+
+        assert.equal(saveResponse.status, 200);
+        assert.equal(savedBody.success, true);
+
+        recordId = savedBody.record.id;
+
+        // Retrieve the saved record using its identifier.
+        const response = await fetch(
+            `${baseUrl}/api/analyses/${recordId}`
+        );
+
+        const body = await response.json();
+
+        assert.equal(response.status, 200);
+        assert.equal(body.success, true);
+
+        assert.equal(
+            body.record.id,
+            recordId
+        );
+
+        assert.equal(
+            body.record.savedAt,
+            savedBody.record.savedAt
+        );
+
+        assert.deepEqual(
+            body.record.provenance,
+            savedBody.provenance
+        );
+
+        assert.deepEqual(
+            body.record.analysis,
+            savedBody.analysis
+        );
+
+    } finally {
+
+        // Remove the temporary record created by this test.
+        if (recordId) {
+
+            await fs.rm(
+                path.join(
+                    analysisStorageDirectory,
+                    `${recordId}.json`
+                ),
+                {
+                    force: true
+                }
+            );
+
+        }
+
+    }
+
+});
+
+
+// TEST 34: Return HTTP 404 when a record does not exist.
+test("GET /api/analyses/:id returns HTTP 404 for a missing record", async () => {
+
+    const unknownId =
+        "123e4567-e89b-42d3-a456-426614174000";
+
+    const response = await fetch(
+        `${baseUrl}/api/analyses/${unknownId}`
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 404);
+    assert.equal(body.success, false);
+
+    assert.equal(
+        body.error,
+        "Analysis record not found."
+    );
+
+});
+
+
+// TEST 35: Reject invalid analysis record identifiers.
+test("GET /api/analyses/:id rejects an invalid identifier", async () => {
+
+    const response = await fetch(
+        `${baseUrl}/api/analyses/not-a-uuid`
+    );
+
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.equal(body.success, false);
+
+    assert.match(
+        body.error,
+        /valid UUID/
+    );
+
+});
+
+
+// TEST 36: Return HTTP 500 when retrieval storage fails.
+test("GET /api/analyses/:id returns HTTP 500 when storage fails", async () => {
+
+    const validId =
+        "123e4567-e89b-42d3-a456-426614174000";
+
+    // Preserve the original storage configuration.
+    const originalStorageDirectory =
+        process.env.ANALYSIS_STORAGE_DIRECTORY;
+
+    // Create a file where a storage directory is expected.
+    const invalidStoragePath = path.join(
+        analysisStorageDirectory,
+        "retrieval-storage-is-a-file"
+    );
+
+    try {
+
+        await fs.writeFile(
+            invalidStoragePath,
+            "This is a file, not a directory."
+        );
+
+        // Force the retrieval operation to encounter a filesystem error.
+        process.env.ANALYSIS_STORAGE_DIRECTORY =
+            invalidStoragePath;
+
+        const response = await fetch(
+            `${baseUrl}/api/analyses/${validId}`
+        );
+
+        const body = await response.json();
+
+        assert.equal(response.status, 500);
+        assert.equal(body.success, false);
+
+        assert.equal(
+            body.error,
+            "Internal server error."
+        );
+
+    } finally {
+
+        // Restore the original storage configuration.
+        if (originalStorageDirectory === undefined) {
+
+            delete process.env.ANALYSIS_STORAGE_DIRECTORY;
+
+        } else {
+
+            process.env.ANALYSIS_STORAGE_DIRECTORY =
+                originalStorageDirectory;
+
+        }
+
+        // Remove the temporary file.
+        await fs.rm(
+            invalidStoragePath,
+            {
+                force: true
+            }
+        );
+
+    }
+
+});

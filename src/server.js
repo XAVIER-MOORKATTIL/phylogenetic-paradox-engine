@@ -10,9 +10,9 @@ const {
 } = require("./provenance");
 
 const {
-    saveAnalysisRecord
+    saveAnalysisRecord,
+    getAnalysisRecord
 } = require("./analysisStore");
-
 const {
     runPhylogeneticAnalysis,
     runAlignedPhylogeneticAnalysis
@@ -225,7 +225,59 @@ app.post("/api/analyze/fasta", async (req, res, next) => {
 });
 
 
-// STEP 9: Handle malformed JSON and other middleware errors.
+
+// STEP 9: Retrieve a previously saved analysis record.
+app.get("/api/analyses/:id", async (req, res, next) => {
+
+    // Part 1: Retrieve the requested record identifier.
+    const id = req.params.id;
+
+    // Part 2: Validate the UUID before accessing storage.
+    if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: "Analysis record ID must be a valid UUID."
+        });
+    }
+
+    // Part 3: Retrieve the record from persistent storage.
+    let record;
+
+    try {
+
+        record = await getAnalysisRecord(
+            id,
+            process.env.ANALYSIS_STORAGE_DIRECTORY
+        );
+
+    } catch (error) {
+
+        // Unexpected storage errors go to global error middleware.
+        return next(error);
+
+    }
+
+    // Part 4: Return HTTP 404 when the record does not exist.
+    if (record === null) {
+
+        return res.status(404).json({
+            success: false,
+            error: "Analysis record not found."
+        });
+
+    }
+
+    // Part 5: Return the successfully retrieved record.
+    return res.status(200).json({
+        success: true,
+        record
+    });
+
+});
+
+// STEP 10: Handle malformed JSON and other middleware errors
 app.use((error, req, res, next) => {
 
     if (error.type === "entity.parse.failed") {
@@ -256,7 +308,7 @@ app.use((error, req, res, next) => {
 });
 
 
-// STEP 10: Start the development server.
+// STEP 11: Start the development server.
 const PORT = 3000;
 
 if (require.main === module) {
@@ -272,5 +324,5 @@ if (require.main === module) {
 }
 
 
-// STEP 11: Export the application for automated testing.
+// STEP 12: Export the application for automated testing.
 module.exports = app;
