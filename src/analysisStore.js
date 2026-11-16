@@ -270,8 +270,224 @@ async function getAnalysisRecord(
 }
 
 
-// STEP 18: Export the storage functions.
+
+// STEP 18: List saved analysis records.
+async function listAnalysisRecords(
+    directory = DEFAULT_STORAGE_DIRECTORY
+) {
+
+    // Part 1: Validate the storage directory path.
+    if (
+        typeof directory !== "string" ||
+        directory.trim().length === 0
+    ) {
+        throw new Error(
+            "Storage directory must be a valid path."
+        );
+    }
+
+
+    // Part 2: Check whether the storage directory exists.
+    let directoryStats;
+
+    try {
+
+        directoryStats = await fs.stat(directory);
+
+    } catch (error) {
+
+        // A missing directory means there are no saved records.
+        if (error.code === "ENOENT") {
+            return [];
+        }
+
+        throw error;
+
+    }
+
+
+    // Part 3: Ensure the storage path is a directory.
+    if (!directoryStats.isDirectory()) {
+
+        throw new Error(
+            "Analysis storage path is not a directory."
+        );
+
+    }
+
+
+    // Part 4: Read the directory entries.
+    const entries = await fs.readdir(
+        directory,
+        {
+            withFileTypes: true
+        }
+    );
+
+
+    // Part 5: Select JSON files only.
+    const jsonFiles = entries.filter(entry =>
+        entry.isFile() &&
+        entry.name.endsWith(".json")
+    );
+
+
+    // Part 6: Read and parse every saved record.
+    const records = await Promise.all(
+        jsonFiles.map(async entry => {
+
+            const filePath = path.join(
+                directory,
+                entry.name
+            );
+
+            const fileContents = await fs.readFile(
+                filePath,
+                "utf8"
+            );
+
+            let savedRecord;
+
+            try {
+
+                savedRecord = JSON.parse(fileContents);
+
+            } catch (error) {
+
+                throw new Error(
+                    `Stored analysis record contains invalid JSON: ${error.message}`
+                );
+
+            }
+
+
+            // Validate the stored record structure.
+            validateAnalysisRecord(savedRecord);
+
+
+            // Ensure the record ID matches its filename.
+            const expectedId = entry.name.slice(0, -5);
+
+            if (
+                savedRecord.id !== expectedId ||
+                typeof savedRecord.savedAt !== "string"
+            ) {
+                throw new Error(
+                    "Stored analysis record has invalid metadata."
+                );
+            }
+
+
+            // Return a lightweight summary.
+            return {
+                id: savedRecord.id,
+                savedAt: savedRecord.savedAt,
+                provenance: savedRecord.provenance
+            };
+
+        })
+    );
+
+
+    // Part 7: Sort newest records first.
+    records.sort((a, b) =>
+        b.savedAt.localeCompare(a.savedAt)
+    );
+
+
+    return records;
+
+}
+
+
+// STEP 19: Delete a saved analysis record by its identifier.
+async function deleteAnalysisRecord(
+    id,
+    directory = DEFAULT_STORAGE_DIRECTORY
+) {
+
+    // Part 1: Validate the record identifier.
+    if (
+        typeof id !== "string" ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ) {
+        throw new Error(
+            "Analysis record ID must be a valid UUID."
+        );
+    }
+
+
+    // Part 2: Validate the storage directory path.
+    if (
+        typeof directory !== "string" ||
+        directory.trim().length === 0
+    ) {
+        throw new Error(
+            "Storage directory must be a valid path."
+        );
+    }
+
+
+    // Part 3: Verify that the storage directory exists.
+    let directoryStats;
+
+    try {
+
+        directoryStats = await fs.stat(directory);
+
+    } catch (error) {
+
+        // A missing directory means there is nothing to delete.
+        if (error.code === "ENOENT") {
+            return false;
+        }
+
+        throw error;
+
+    }
+
+
+    // Part 4: Reject a regular file used as a storage directory.
+    if (!directoryStats.isDirectory()) {
+
+        throw new Error(
+            "Analysis storage path is not a directory."
+        );
+
+    }
+
+
+    // Part 5: Construct the exact JSON filename.
+    const filePath = path.join(
+        directory,
+        `${id}.json`
+    );
+
+
+    // Part 6: Delete the record.
+    try {
+
+        await fs.unlink(filePath);
+
+        return true;
+
+    } catch (error) {
+
+        // A missing record is not a filesystem failure.
+        if (error.code === "ENOENT") {
+            return false;
+        }
+
+        throw error;
+
+    }
+
+}
+
+// STEP 19: Export the storage functions.
 module.exports = {
     saveAnalysisRecord,
-    getAnalysisRecord
+    getAnalysisRecord,
+    listAnalysisRecords,
+    deleteAnalysisRecord
 };

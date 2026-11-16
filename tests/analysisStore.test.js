@@ -8,7 +8,9 @@ const path = require("node:path");
 
 const {
     saveAnalysisRecord,
-    getAnalysisRecord
+    getAnalysisRecord,
+    listAnalysisRecords,
+    deleteAnalysisRecord
 } = require("../src/analysisStore");
 
 
@@ -394,6 +396,250 @@ test("rejects analysis records containing invalid JSON", async t => {
     await assert.rejects(
         () => getAnalysisRecord(id, directory),
         /JSON/
+    );
+
+});
+
+// TEST 14: List saved analysis records without returning full analysis results.
+test("lists saved analysis record summaries", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const firstRecord = await saveAnalysisRecord(
+        createSampleRecord(),
+        directory
+    );
+
+    const secondRecord = await saveAnalysisRecord(
+        createSampleRecord(),
+        directory
+    );
+
+    const records = await listAnalysisRecords(directory);
+
+    assert.equal(records.length, 2);
+
+    const firstSummary = records.find(
+        record => record.id === firstRecord.id
+    );
+
+    const secondSummary = records.find(
+        record => record.id === secondRecord.id
+    );
+
+    assert.ok(firstSummary);
+    assert.ok(secondSummary);
+
+    assert.deepEqual(
+        firstSummary.provenance,
+        createSampleRecord().provenance
+    );
+
+    assert.equal(
+        Object.hasOwn(firstSummary, "analysis"),
+        false
+    );
+
+});
+
+
+// TEST 15: Return an empty array when the storage directory does not exist.
+test("returns an empty array when the storage directory does not exist", async t => {
+
+    const parentDirectory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(parentDirectory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const directory = path.join(
+        parentDirectory,
+        "missing",
+        "analyses"
+    );
+
+    const records = await listAnalysisRecords(directory);
+
+    assert.deepEqual(records, []);
+
+});
+
+
+// TEST 16: Reject corrupted JSON while listing records.
+test("rejects corrupted JSON records while listing", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    await fs.writeFile(
+        path.join(directory, `${id}.json`),
+        "{ invalid JSON",
+        "utf8"
+    );
+
+    await assert.rejects(
+        () => listAnalysisRecords(directory),
+        /JSON/
+    );
+
+});
+
+// TEST 17: Delete an existing analysis record.
+test("deletes a saved analysis record", async t => {
+
+    const directory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(directory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const savedRecord = await saveAnalysisRecord(
+        createSampleRecord(),
+        directory
+    );
+
+    const deleted = await deleteAnalysisRecord(
+        savedRecord.id,
+        directory
+    );
+
+    assert.equal(deleted, true);
+
+    const retrievedRecord = await getAnalysisRecord(
+        savedRecord.id,
+        directory
+    );
+
+    assert.equal(retrievedRecord, null);
+
+});
+
+
+// TEST 18: Return false when the requested record does not exist.
+test("returns false when the analysis record does not exist", async () => {
+
+    const directory = await createTemporaryDirectory();
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    const deleted = await deleteAnalysisRecord(
+        id,
+        directory
+    );
+
+    assert.equal(deleted, false);
+
+    await fs.rm(directory, {
+        recursive: true,
+        force: true
+    });
+
+});
+
+
+// TEST 19: Return false when the storage directory does not exist.
+test("returns false when the storage directory does not exist", async t => {
+
+    const parentDirectory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(parentDirectory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const directory = path.join(
+        parentDirectory,
+        "missing",
+        "analyses"
+    );
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    const deleted = await deleteAnalysisRecord(
+        id,
+        directory
+    );
+
+    assert.equal(deleted, false);
+
+});
+
+
+// TEST 20: Reject invalid analysis record identifiers.
+test("rejects invalid identifiers when deleting analysis records", async () => {
+
+    await assert.rejects(
+        () => deleteAnalysisRecord("invalid-id"),
+        /valid UUID/
+    );
+
+});
+
+
+// TEST 21: Reject an invalid storage directory path.
+test("rejects an invalid storage directory path when deleting records", async () => {
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    await assert.rejects(
+        () => deleteAnalysisRecord(id, ""),
+        /valid path/
+    );
+
+});
+
+
+// TEST 22: Reject a regular file used as the storage directory.
+test("rejects a regular file used as the storage directory when deleting records", async t => {
+
+    const parentDirectory = await createTemporaryDirectory();
+
+    t.after(async () => {
+        await fs.rm(parentDirectory, {
+            recursive: true,
+            force: true
+        });
+    });
+
+    const filePath = path.join(
+        parentDirectory,
+        "not-a-directory"
+    );
+
+    await fs.writeFile(
+        filePath,
+        "This is a regular file.",
+        "utf8"
+    );
+
+    const id = "123e4567-e89b-42d3-a456-426614174000";
+
+    await assert.rejects(
+        () => deleteAnalysisRecord(id, filePath),
+        /not a directory/
     );
 
 });

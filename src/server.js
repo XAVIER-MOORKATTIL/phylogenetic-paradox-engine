@@ -11,8 +11,11 @@ const {
 
 const {
     saveAnalysisRecord,
-    getAnalysisRecord
+    getAnalysisRecord,
+    listAnalysisRecords,
+    deleteAnalysisRecord
 } = require("./analysisStore");
+
 const {
     runPhylogeneticAnalysis,
     runAlignedPhylogeneticAnalysis
@@ -225,6 +228,28 @@ app.post("/api/analyze/fasta", async (req, res, next) => {
 });
 
 
+ // STEP 9: List all saved analysis records.
+app.get("/api/analyses", async (req, res, next) => {
+
+    try {
+
+        const records = await listAnalysisRecords(
+            process.env.ANALYSIS_STORAGE_DIRECTORY
+        );
+
+        return res.status(200).json({
+            success: true,
+            count: records.length,
+            records
+        });
+
+    } catch (error) {
+
+        return next(error);
+
+    }
+
+});
 
 // STEP 9: Retrieve a previously saved analysis record.
 app.get("/api/analyses/:id", async (req, res, next) => {
@@ -273,6 +298,59 @@ app.get("/api/analyses/:id", async (req, res, next) => {
     return res.status(200).json({
         success: true,
         record
+    });
+
+});
+
+
+// STEP 10: Delete a saved analysis record.
+app.delete("/api/analyses/:id", async (req, res, next) => {
+
+    // Part 1: Retrieve the requested record identifier.
+    const id = req.params.id;
+
+    // Part 2: Validate the UUID before accessing storage.
+    if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+    ) {
+        return res.status(400).json({
+            success: false,
+            error: "Analysis record ID must be a valid UUID."
+        });
+    }
+
+    // Part 3: Delete the requested record from persistent storage.
+    let deleted;
+
+    try {
+
+        deleted = await deleteAnalysisRecord(
+            id,
+            process.env.ANALYSIS_STORAGE_DIRECTORY
+        );
+
+    } catch (error) {
+
+        // Unexpected storage errors go to global error middleware.
+        return next(error);
+
+    }
+
+    // Part 4: Return HTTP 404 if the record does not exist.
+    if (!deleted) {
+
+        return res.status(404).json({
+            success: false,
+            error: "Analysis record not found."
+        });
+
+    }
+
+    // Part 5: Confirm successful deletion.
+    return res.status(200).json({
+        success: true,
+        message: "Analysis record deleted.",
+        id
     });
 
 });
