@@ -1,0 +1,60 @@
+
+:root {
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+
+  --page-bg: #f7f8f6;
+  --surface: #ffffff;
+  --card: #fbfcfa;
+  --science-surface: #f0f3ed;
+
+  --heading-color: #18231e;
+  --body-color: #34433b;
+  --muted: #77847c;
+
+  --border: #e2e8e1;
+
+  --accent: #287a59;
+  --success: #287a59;
+  --success-bg: #e9f4ed;
+
+  color: var(--body-color);
+  background: var(--page-bg);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
+
+#root {
+  min-height: 100vh;
+}

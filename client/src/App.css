@@ -1,0 +1,401 @@
+
+.app-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 0 38px;
+  box-sizing: border-box;
+}
+
+/* HEADER */
+
+.topbar {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.brand-mark {
+  width: 45px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-name {
+  color: var(--heading-color);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.brand-subtitle {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.environment-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+
+/* HERO SECTION */
+
+.hero {
+  padding: 76px 0 58px;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.7px;
+  margin: 0 0 17px;
+}
+
+.hero h1 {
+  color: var(--heading-color);
+  font-size: clamp(38px, 6vw, 64px);
+  font-weight: 750;
+  letter-spacing: -2.8px;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.hero h1 span {
+  color: var(--accent);
+}
+
+.hero-description {
+  max-width: 650px;
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 25px;
+}
+
+.hero-tags span {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--body-color);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+/* MAIN WORKSPACE */
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.9fr);
+  gap: 20px;
+}
+
+.workspace-panel,
+.science-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 27px;
+}
+
+.panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+.panel-heading .eyebrow {
+  margin-bottom: 9px;
+}
+
+.panel-heading h2 {
+  color: var(--heading-color);
+  font-size: 23px;
+  margin: 0;
+  letter-spacing: -0.7px;
+}
+
+.panel-label {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--success);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+}
+
+.panel-description {
+  margin-top: 13px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.feature-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.feature-card {
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.feature-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feature-number {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.feature-status {
+  padding: 5px 8px;
+  border-radius: 5px;
+  color: var(--success);
+  background: var(--success-bg);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.feature-card h3 {
+  margin: 12px 0 5px;
+  color: var(--heading-color);
+  font-size: 15px;
+}
+
+.feature-card p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+
+/* SCIENTIFIC GUARDRAIL */
+
+.science-panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--science-surface);
+}
+
+.science-icon {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 23px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: Georgia, serif;
+  font-size: 16px;
+  font-style: italic;
+}
+
+.science-panel .eyebrow {
+  margin-bottom: 12px;
+}
+
+.science-panel h2 {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: 25px;
+  line-height: 1.35;
+  letter-spacing: -0.8px;
+}
+
+.science-description,
+.science-note {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.85;
+}
+
+.science-description {
+  margin-top: 16px;
+}
+
+.science-divider {
+  height: 1px;
+  margin: 24px 0;
+  background: var(--border);
+}
+
+.science-note {
+  font-size: 12px;
+}
+
+.science-footer {
+  margin-top: auto;
+  padding-top: 30px;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+
+/* BACKEND LIMITS */
+
+.limits-section {
+  padding: 55px 0 44px;
+}
+
+.limits-section > .eyebrow {
+  margin-bottom: 17px;
+}
+
+.limits-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.limit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 19px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.limit-value {
+  color: var(--heading-color);
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+}
+
+.limit-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+
+/* FOOTER */
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 23px 0 30px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.footer span:first-child {
+  color: var(--heading-color);
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+
+
+/* RESPONSIVE LAYOUT */
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 0 20px;
+  }
+
+  .hero {
+    padding: 55px 0 40px;
+  }
+
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .science-panel {
+    min-height: 300px;
+  }
+
+  .limits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 460px) {
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 17px 0;
+  }
+
+  .environment-label {
+    padding-left: 3px;
+  }
+
+  .hero h1 {
+    font-size: 40px;
+    letter-spacing: -1.8px;
+  }
+
+  .workspace-panel,
+  .science-panel {
+    padding: 20px;
+  }
+
+  .panel-heading {
+    flex-direction: column;
+  }
+}
