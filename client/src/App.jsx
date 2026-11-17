@@ -1,4 +1,5 @@
 import FastaInput from './components/FastaInput'
+import SavedAnalyses from './components/SavedAnalyses'
 import './App.css'
 
 function FeatureCard({ number, title, description, status }) {
@@ -67,6 +68,7 @@ function App() {
       </section>
 
       <FastaInput />
+      <SavedAnalyses />
       <section className="workspace-grid">
 
         <div className="workspace-panel">
@@ -82,9 +84,8 @@ function App() {
           </div>
 
           <p className="panel-description">
-            The analytical modules are implemented in the backend.
-            The interactive frontend will connect to them in the
-            next development stage.
+            The analytical modules are implemented in the backend
+and accessible through the connected React interface.
           </p>
 
           <div className="feature-list">
