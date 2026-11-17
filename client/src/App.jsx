@@ -1,4 +1,4 @@
-
+import FastaInput from './components/FastaInput'
 import './App.css'
 
 function FeatureCard({ number, title, description, status }) {
@@ -66,7 +66,7 @@ function App() {
         </div>
       </section>
 
-
+      <FastaInput />
       <section className="workspace-grid">
 
         <div className="workspace-panel">
