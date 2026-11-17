@@ -1,0 +1,104 @@
+
+.distance-matrix-section {
+  margin-top: 25px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+}
+
+.distance-matrix-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 18px;
+}
+
+.distance-matrix-heading .eyebrow {
+  margin-bottom: 8px;
+}
+
+.distance-matrix-heading h3 {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: 17px;
+}
+
+.matrix-taxon-count {
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.matrix-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.distance-matrix-table {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.distance-matrix-table caption {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  text-align: left;
+}
+
+.distance-matrix-table th,
+.distance-matrix-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.distance-matrix-table thead th {
+  background: var(--science-surface);
+  color: var(--heading-color);
+  font-weight: 750;
+  text-align: right;
+}
+
+.distance-matrix-table thead th:first-child {
+  text-align: left;
+}
+
+.distance-matrix-table tbody th {
+  background: var(--science-surface);
+  color: var(--heading-color);
+  font-weight: 700;
+  text-align: left;
+}
+
+.distance-matrix-table tbody td {
+  color: var(--body-color);
+  font-family: Consolas, "Courier New", monospace;
+  text-align: right;
+  min-width: 110px;
+}
+
+.distance-matrix-table tbody tr:last-child th,
+.distance-matrix-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.matrix-method-note {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}

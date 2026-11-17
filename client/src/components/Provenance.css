@@ -1,0 +1,161 @@
+
+.provenance-section {
+  margin-top: 25px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+}
+
+.provenance-heading h3 {
+  margin: 0;
+  color: var(--heading-color);
+  font-size: 17px;
+}
+
+.provenance-heading .eyebrow {
+  margin-bottom: 8px;
+}
+
+.provenance-description {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.provenance-group {
+  margin-top: 23px;
+  padding-top: 19px;
+  border-top: 1px solid var(--border);
+}
+
+.provenance-group h4 {
+  margin: 0 0 15px;
+  color: var(--heading-color);
+  font-size: 13px;
+}
+
+.provenance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.provenance-item {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.provenance-item > span,
+.provenance-hash > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.provenance-item > strong {
+  color: var(--body-color);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.taxa-list {
+  margin-top: 20px;
+}
+
+.taxa-list h5 {
+  margin: 0 0 10px;
+  color: var(--heading-color);
+  font-size: 11px;
+}
+
+.taxa-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.taxa-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--body-color);
+  font-size: 11px;
+}
+
+.taxa-list li:last-child {
+  border-bottom: none;
+}
+
+.taxa-list li span:last-child {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.provenance-source-details {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--body-color);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.provenance-hash-description {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.provenance-hash {
+  display: grid;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.provenance-hash code {
+  display: block;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--body-color);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 10px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 600px) {
+  .provenance-section {
+    padding: 17px;
+  }
+
+  .provenance-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .taxa-list li {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}

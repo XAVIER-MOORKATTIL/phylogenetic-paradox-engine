@@ -214,10 +214,11 @@
     width: 100%;
   }
 
-  .preview-grid {
+    .preview-grid {
     grid-template-columns: 1fr;
   }
 
+}
 
 /* ANALYSIS ACTIONS */
 

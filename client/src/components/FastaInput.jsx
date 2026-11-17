@@ -1,5 +1,7 @@
-
+import Provenance from './Provenance'
+import PhylogeneticTree from './PhylogeneticTree'
 import { useState } from 'react'
+import DistanceMatrix from './DistanceMatrix'
 import './FastaInput.css'
 
 // Artificial teaching data, not biological evidence.
@@ -298,6 +300,16 @@ function FastaInput() {
 
           </div>
 
+          <DistanceMatrix
+  matrix={analysisResponse.analysis?.distanceMatrix}
+  method={analysisResponse.provenance?.analysis?.distanceMethod}
+/>
+
+<PhylogeneticTree
+  tree={analysisResponse.analysis?.tree}
+  method={analysisResponse.provenance?.analysis?.treeMethod}
+/>
+
           <details open>
             <summary>Analysis output</summary>
 
@@ -310,17 +322,9 @@ function FastaInput() {
             </pre>
           </details>
 
-          <details>
-            <summary>Analysis provenance</summary>
-
-            <pre>
-              {JSON.stringify(
-                analysisResponse.provenance,
-                null,
-                2
-              )}
-            </pre>
-          </details>
+          <Provenance
+  provenance={analysisResponse.provenance}
+/>
 
         </section>
       )}
