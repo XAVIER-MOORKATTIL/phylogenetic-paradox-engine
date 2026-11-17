@@ -486,6 +486,7 @@ async function deleteAnalysisRecord(
 
 // STEP 19: Export the storage functions.
 module.exports = {
+    validateAnalysisRecord,
     saveAnalysisRecord,
     getAnalysisRecord,
     listAnalysisRecords,

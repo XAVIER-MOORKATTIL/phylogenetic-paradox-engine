@@ -2,6 +2,14 @@
 const express = require("express");
 
 const {
+    openMongoConnection
+} = require("./mongoConnection");
+
+const {
+    createMongoAnalysisStore
+} = require("./mongoAnalysisStore");
+
+const {
     parseFasta
 } = require("./fasta");
 
@@ -24,6 +32,14 @@ const {
 
 // STEP 1: Create the Express application.
 const app = express();
+
+// Default filesystem storage for local development and testing.
+app.locals.analysisStore = {
+    saveAnalysisRecord,
+    getAnalysisRecord,
+    listAnalysisRecords,
+    deleteAnalysisRecord
+};
 
 
 // STEP 2: Allow the server to receive JSON data.
@@ -197,7 +213,7 @@ app.post("/api/analyze/fasta", async (req, res, next) => {
 
     try {
 
-        savedRecord = await saveAnalysisRecord(
+        savedRecord = await req.app.locals.analysisStore.saveAnalysisRecord(
             {
                 provenance,
                 analysis: result
@@ -233,7 +249,7 @@ app.get("/api/analyses", async (req, res, next) => {
 
     try {
 
-        const records = await listAnalysisRecords(
+        const records = await req.app.locals.analysisStore.listAnalysisRecords(
             process.env.ANALYSIS_STORAGE_DIRECTORY
         );
 
@@ -272,7 +288,7 @@ app.get("/api/analyses/:id", async (req, res, next) => {
 
     try {
 
-        record = await getAnalysisRecord(
+        record = await req.app.locals.analysisStore.getAnalysisRecord(
             id,
             process.env.ANALYSIS_STORAGE_DIRECTORY
         );
@@ -324,7 +340,7 @@ app.delete("/api/analyses/:id", async (req, res, next) => {
 
     try {
 
-        deleted = await deleteAnalysisRecord(
+        deleted = await req.app.locals.analysisStore.deleteAnalysisRecord(
             id,
             process.env.ANALYSIS_STORAGE_DIRECTORY
         );
@@ -389,18 +405,136 @@ app.use((error, req, res, next) => {
 // STEP 11: Start the development server.
 const PORT = 3000;
 
-if (require.main === module) {
 
-    app.listen(PORT, () => {
+// Initialize storage before starting the server.
+async function startServer() {
+
+    const storageBackend =
+        process.env.ANALYSIS_STORAGE_BACKEND ?? "file";
+
+    let client;
+
+    try {
+
+        // Select the configured storage backend.
+        if (storageBackend === "mongodb") {
+
+            const connection = await openMongoConnection();
+
+            client = connection.client;
+
+            app.locals.analysisStore =
+                createMongoAnalysisStore(
+                    connection.database
+                );
+
+        } else if (storageBackend !== "file") {
+
+            throw new Error(
+                "Unsupported analysis storage backend."
+            );
+
+        }
+
+
+        // Start accepting HTTP requests.
+        const server = await new Promise((resolve, reject) => {
+
+            const httpServer = app.listen(PORT, error => {
+
+                if (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve(httpServer);
+
+            });
+
+        });
+
+        console.log(
+            `Analysis storage backend: ${storageBackend}`
+        );
 
         console.log(
             `Phylogenetic Paradox Engine API running at http://localhost:${PORT}`
         );
+
+
+        // Close resources during shutdown.
+        let shuttingDown = false;
+
+        function shutdown() {
+
+            if (shuttingDown) {
+                return;
+            }
+
+            shuttingDown = true;
+
+            server.close(async error => {
+
+                try {
+
+                    if (client) {
+                        await client.close();
+                    }
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    console.log("Server shut down successfully.");
+
+                } catch (shutdownError) {
+
+                    console.error(
+                        "Shutdown failed:",
+                        shutdownError.name
+                    );
+
+                    process.exitCode = 1;
+
+                }
+
+            });
+
+        }
+
+        process.once("SIGINT", shutdown);
+        process.once("SIGTERM", shutdown);
+
+    } catch (error) {
+
+        if (client) {
+            await client.close().catch(() => {});
+        }
+
+        throw error;
+
+    }
+
+}
+
+
+// Start only when executed directly.
+if (require.main === module) {
+
+    startServer().catch(error => {
+
+        console.error(
+            "Server startup failed:",
+            error.name,
+            error.code || ""
+        );
+
+        process.exitCode = 1;
 
     });
 
 }
 
 
-// STEP 12: Export the application for automated testing.
+// Export the application for automated testing.
 module.exports = app;
