@@ -1,9 +1,22 @@
+const path = require("node:path");
 
 const express = require("express");
 
 const {
+    configureAuthentication
+} = require("./authentication");
+
+const {
     openMongoConnection
 } = require("./mongoConnection");
+
+const {
+    configureSecurity
+} = require("./security");
+
+const {
+    getServerConfig
+} = require("./serverConfig");
 
 const {
     createMongoAnalysisStore
@@ -32,6 +45,8 @@ const {
 
 // STEP 1: Create the Express application.
 const app = express();
+configureSecurity(app);
+configureAuthentication(app);
 
 // Default filesystem storage for local development and testing.
 app.locals.analysisStore = {
@@ -371,6 +386,27 @@ app.delete("/api/analyses/:id", async (req, res, next) => {
 
 });
 
+// Handle unknown API endpoints.
+app.use("/api", (req, res) => {
+
+    return res.status(404).json({
+        success: false,
+        error: "API endpoint not found."
+    });
+
+});
+
+// Resolve the compiled React frontend directory.
+const CLIENT_DIST_DIRECTORY = path.resolve(
+    __dirname,
+    "..",
+    "client",
+    "dist"
+);
+
+// Serve the compiled React application.
+app.use(express.static(CLIENT_DIST_DIRECTORY));
+
 // STEP 10: Handle malformed JSON and other middleware errors
 app.use((error, req, res, next) => {
 
@@ -402,15 +438,13 @@ app.use((error, req, res, next) => {
 });
 
 
-// STEP 11: Start the development server.
-const PORT = 3000;
-
-
 // Initialize storage before starting the server.
 async function startServer() {
 
-    const storageBackend =
-        process.env.ANALYSIS_STORAGE_BACKEND ?? "file";
+    const {
+    port: PORT,
+    storageBackend
+} = getServerConfig();
 
     let client;
 
