@@ -45,6 +45,13 @@ const {
 
 // STEP 1: Create the Express application.
 const app = express();
+// Trust the immediate reverse proxy when hosted on Render.
+if (
+    process.env.NODE_ENV === "production" &&
+    process.env.RENDER === "true"
+) {
+    app.set("trust proxy", 1);
+}
 configureSecurity(app);
 configureAuthentication(app);
 
