@@ -38,7 +38,7 @@ function App() {
 
         <div className="environment-label">
           <span className="status-dot"></span>
-          LOCAL DEVELOPMENT
+          RESEARCH WORKSPACE
         </div>
       </header>
 

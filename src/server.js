@@ -442,9 +442,14 @@ app.use((error, req, res, next) => {
 async function startServer() {
 
     const {
+    nodeEnv,
     port: PORT,
     storageBackend
 } = getServerConfig();
+
+const HOST = nodeEnv === "production"
+    ? "0.0.0.0"
+    : "127.0.0.1";
 
     let client;
 
@@ -474,7 +479,7 @@ async function startServer() {
         // Start accepting HTTP requests.
         const server = await new Promise((resolve, reject) => {
 
-            const httpServer = app.listen(PORT, error => {
+            const httpServer = app.listen(PORT, HOST, error => {
 
                 if (error) {
                     reject(error);
